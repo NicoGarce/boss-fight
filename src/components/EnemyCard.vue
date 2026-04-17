@@ -1,68 +1,16 @@
 <script setup>
-import { ref } from 'vue'
 import { useGameStore } from '../stores/game.js'
 
 const gameStore = useGameStore()
-const hoveredBoss = ref(false)
-const longPressTimer = ref(null)
-const isMobile = ref('ontouchstart' in window)
-
-const getBossLore = (name) => {
-  return 'A mysterious interviewer with unknown motives.'
-}
-
-const handleTouchStart = (event) => {
-  if (!isMobile.value) return
-  event.preventDefault()
-  longPressTimer.value = setTimeout(() => {
-    hoveredBoss.value = true
-  }, 500)
-}
-
-const handleTouchEnd = () => {
-  if (!isMobile.value) return
-  if (longPressTimer.value) {
-    clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
-}
-
-const handleTouchMove = () => {
-  if (!isMobile.value) return
-  if (longPressTimer.value) {
-    clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
-}
-
-const handleTapTooltip = () => {
-  if (isMobile.value && hoveredBoss.value) {
-    hoveredBoss.value = false
-  }
-}
 </script>
 
 <template>
   <div class="enemy-card" :class="{ shake: gameStore.enemyShake, damage: gameStore.enemyDamage }">
     <div class="card-header">
-      <h3 
-        @mouseenter="!isMobile ? hoveredBoss = true : null" 
-        @mouseleave="!isMobile ? hoveredBoss = false : null"
-        @touchstart="handleTouchStart"
-        @touchend="handleTouchEnd"
-        @touchmove="handleTouchMove"
-        class="boss-name">{{ gameStore.enemy.name }}</h3>
+      <h3 class="boss-name">{{ gameStore.enemy.name }}</h3>
       <div class="header-badges">
         <span class="level-badge">Level {{ gameStore.currentLevel }}/{{ gameStore.totalLevels }}</span>
         <span class="difficulty-badge">{{ gameStore.enemy.difficulty }}</span>
-      </div>
-      <div v-if="hoveredBoss" class="boss-tooltip" @click="handleTapTooltip">
-        <h4>{{ gameStore.enemy.name }}</h4>
-        <p><strong>Difficulty:</strong> {{ gameStore.enemy.difficulty }}</p>
-        <p><strong>HP:</strong> {{ gameStore.enemy.hp }}/{{ gameStore.enemy.maxHp }}</p>
-        <p><strong>Questions:</strong> {{ gameStore.enemy.questions.length }}</p>
-        <p class="tooltip-lore">{{ getBossLore(gameStore.enemy.name) }}</p>
-        <p v-if="isMobile" class="tap-to-dismiss">Tap to dismiss</p>
       </div>
     </div>
     <div class="card-body">
@@ -289,12 +237,6 @@ const handleTapTooltip = () => {
     gap: 6px;
     font-size: 12px;
   }
-  
-  .boss-tooltip {
-    min-width: 180px;
-    padding: 8px;
-    margin-top: 8px;
-  }
 }
 
 @keyframes shake {
@@ -305,55 +247,5 @@ const handleTapTooltip = () => {
 
 .shake {
   animation: shake 0.5s ease-in-out;
-}
-
-.boss-tooltip {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: #263238;
-  border: 2px solid #607D8B;
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 250px;
-  z-index: 100;
-  margin-top: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-}
-
-.boss-tooltip h4 {
-  margin: 0 0 8px 0;
-  color: #EF5350;
-  font-size: 14px;
-  font-family: 'Courier New', monospace;
-  text-transform: uppercase;
-}
-
-.boss-tooltip p {
-  margin: 4px 0;
-  color: #B0BEC5;
-  font-size: 12px;
-  font-family: 'Courier New', monospace;
-}
-
-.tooltip-lore {
-  color: #90A4AE;
-  font-style: italic;
-  margin-top: 10px;
-  line-height: 1.4;
-  font-size: 13px;
-  font-family: 'Courier New', monospace;
-}
-
-.tap-to-dismiss {
-  color: #EF5350;
-  font-size: 11px;
-  margin-top: 8px;
-  font-style: italic;
-  text-align: center;
-}
-
-.boss-tooltip {
-  cursor: pointer;
 }
 </style>
