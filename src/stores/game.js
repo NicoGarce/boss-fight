@@ -1,6 +1,22 @@
 import { defineStore } from 'pinia'
 import { processPlayerAction, processEnemyAction } from '../game/engine.js'
-import { getRandomInterviewer } from '../data/interviewers.js'
+import { getRandomInterviewer, INTERVIEWERS, getQuestionsForCareer, getInterviewerName } from '../data/interviewers.js'
+
+function getInterviewerByLevel(level) {
+  const index = (level - 1) % INTERVIEWERS.length
+  return INTERVIEWERS[index]
+}
+
+function getLevelName(level) {
+  const levelNames = {
+    1: 'Resume Screening',
+    2: 'HR Interview',
+    3: 'Skills/Technical Test',
+    4: 'Manager Interview',
+    5: 'Final Interview'
+  }
+  return levelNames[level] || 'Unknown Level'
+}
 
 export const useGameStore = defineStore('game', {
   state: () => ({
@@ -36,11 +52,20 @@ export const useGameStore = defineStore('game', {
     currentQuestion: '',
     gameOverMessage: '',
     enemyShake: false,
-    playerShake: false
+    playerShake: false,
+    playerHeal: false,
+    enemyDamage: false,
+    currentLevel: 1,
+    totalLevels: 5,
+    selectedCareer: 'professional_sleeper',
+    specialQuestionActive: false,
+    currentSpecialQuestion: null,
+    showLevelPopup: false
   }),
   actions: {
-    startGame() {
-      const interviewer = getRandomInterviewer()
+    startGame(career = 'professional_sleeper') {
+      this.selectedCareer = career
+      const interviewer = getInterviewerByLevel(this.currentLevel)
       this.player = {
         hp: 100,
         maxHp: 100,
@@ -55,20 +80,22 @@ export const useGameStore = defineStore('game', {
           buzzword_attack: 0,
           portfolio_flex: 0,
           panic_dodge: 0,
-          heal: 0
+          heal: 0,
+          confidence_boost: 0
         }
       }
       this.enemy = {
-        name: interviewer.name,
+        name: getInterviewerName(interviewer, career),
         hp: interviewer.hp,
         maxHp: interviewer.hp,
         difficulty: interviewer.difficulty,
-        questions: interviewer.questions
+        questions: getQuestionsForCareer(interviewer, career)
       }
       this.turn = 'enemy'
+      const interviewerName = this.enemy.name
       this.log = [
-        { message: 'Interview started...', type: 'system' },
-        { message: `${interviewer.name}: "Welcome! Let's begin the interview."`, type: 'enemy' }
+        { message: `Level ${this.currentLevel}: ${getLevelName(this.currentLevel)}`, type: 'system' },
+        { message: `${interviewerName}: "Welcome! Let's begin the interview."`, type: 'enemy' }
       ]
       this.gameStatus = 'playing'
       this.currentQuestion = ''
@@ -77,7 +104,56 @@ export const useGameStore = defineStore('game', {
       this.playerShake = false
       this.playerHeal = false
       this.enemyDamage = false
+      this.specialQuestionActive = false
+      this.currentSpecialQuestion = null
       this.gameStarted = true
+      this.saveState()
+      
+      // Enemy speaks first
+      setTimeout(() => {
+        this.performEnemyAction()
+      }, 1500)
+    },
+    nextLevel() {
+      this.currentLevel++
+      
+      // Survival mechanics: restore some HP and confidence, increase stats slightly
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 30)
+      this.player.confidence = Math.min(this.player.maxConfidence, this.player.confidence + 20)
+      this.player.skill = Math.min(100, this.player.skill + 5)
+      this.player.luck = Math.min(100, this.player.luck + 5)
+      this.player.energy = this.player.maxEnergy
+      this.player.cooldowns = {
+        buzzword_attack: 0,
+        portfolio_flex: 0,
+        panic_dodge: 0,
+        heal: 0,
+        confidence_boost: 0
+      }
+      
+      // Load next interviewer
+      const interviewer = getInterviewerByLevel(this.currentLevel)
+      const interviewerName = getInterviewerName(interviewer, this.selectedCareer)
+      this.enemy = {
+        name: interviewerName,
+        hp: interviewer.hp,
+        maxHp: interviewer.hp,
+        difficulty: interviewer.difficulty,
+        questions: getQuestionsForCareer(interviewer, this.selectedCareer)
+      }
+      this.turn = 'enemy'
+      this.log = [
+        { message: `Level ${this.currentLevel}: ${getLevelName(this.currentLevel)}`, type: 'system' },
+        { message: `${interviewerName}: "Welcome! Let's begin the interview."`, type: 'enemy' }
+      ]
+      this.gameStatus = 'playing'
+      this.currentQuestion = ''
+      this.gameOverMessage = ''
+      this.enemyShake = false
+      this.playerShake = false
+      this.playerHeal = false
+      this.enemyDamage = false
+      this.showLevelPopup = false
       this.saveState()
       
       // Enemy speaks first
@@ -94,7 +170,13 @@ export const useGameStore = defineStore('game', {
         log: this.log,
         gameStatus: this.gameStatus,
         currentQuestion: this.currentQuestion,
-        gameOverMessage: this.gameOverMessage
+        gameOverMessage: this.gameOverMessage,
+        currentLevel: this.currentLevel,
+        totalLevels: this.totalLevels,
+        selectedCareer: this.selectedCareer,
+        specialQuestionActive: this.specialQuestionActive,
+        currentSpecialQuestion: this.currentSpecialQuestion,
+        showLevelPopup: this.showLevelPopup
       }
       localStorage.setItem('bossFightState', JSON.stringify(stateToSave))
     },
@@ -125,6 +207,12 @@ export const useGameStore = defineStore('game', {
         this.playerShake = false
         this.playerHeal = false
         this.enemyDamage = false
+        this.currentLevel = parsed.currentLevel || 1
+        this.totalLevels = parsed.totalLevels || 5
+        this.selectedCareer = parsed.selectedCareer || 'professional_sleeper'
+        this.specialQuestionActive = parsed.specialQuestionActive || false
+        this.currentSpecialQuestion = parsed.currentSpecialQuestion || null
+        this.showLevelPopup = parsed.showLevelPopup || false
         return true
       }
       return false
@@ -165,12 +253,65 @@ export const useGameStore = defineStore('game', {
       this.playerShake = false
       this.playerHeal = false
       this.enemyDamage = false
+      this.currentLevel = 1
+      this.selectedCareer = 'professional_sleeper'
+      this.specialQuestionActive = false
+      this.currentSpecialQuestion = null
     },
     addLog(message, type = 'system') {
       this.log.push({ message, type })
       if (this.log.length > 10) {
         this.log.shift()
       }
+      this.saveState()
+    },
+    submitAnswer(answer) {
+      if (!this.currentSpecialQuestion) return
+      
+      const normalizedAnswer = answer.toLowerCase().trim()
+      const correctAnswer = this.currentSpecialQuestion.answer.toLowerCase().trim()
+      
+      if (normalizedAnswer === correctAnswer || normalizedAnswer.includes(correctAnswer)) {
+        this.addLog('Correct answer! Boss defeated instantly!', 'player')
+        this.enemy.hp = 0
+        this.gameStatus = 'won'
+        this.showLevelPopup = true
+        this.enemyShake = true
+        setTimeout(() => {
+          this.enemyShake = false
+        }, 500)
+        setTimeout(() => {
+          this.showLevelPopup = false
+        }, 2000)
+      } else {
+        this.addLog('Incorrect answer. The question remains active.', 'system')
+        this.player.confidence = Math.max(0, this.player.confidence - 10)
+        this.addLog('Lost 10 confidence for wrong answer.', 'system')
+      }
+      
+      this.specialQuestionActive = false
+      this.currentSpecialQuestion = null
+      
+      // Check for win
+      if (this.gameStatus === 'won') {
+        this.saveState()
+        if (this.currentLevel < this.totalLevels) {
+          this.addLog('Interview passed! Moving to next level...', 'system')
+          setTimeout(() => {
+            this.nextLevel()
+          }, 2000)
+        } else {
+          this.gameOverMessage = 'Congratulations! You survived all interviews!'
+          this.addLog('Congratulations! You survived all interviews!', 'system')
+        }
+        return
+      }
+      
+      this.saveState()
+    },
+    restartLevel() {
+      const career = this.selectedCareer
+      this.startGame(career)
     },
     performPlayerAction(action) {
       if (this.gameStatus !== 'playing' || this.turn !== 'player') return
@@ -265,9 +406,20 @@ export const useGameStore = defineStore('game', {
 
       // Check for win
       if (this.gameStatus === 'won') {
-        this.gameOverMessage = 'You got the job!'
-        this.addLog('You got the job!', 'system')
+        this.showLevelPopup = true
         this.saveState()
+        setTimeout(() => {
+          this.showLevelPopup = false
+        }, 2000)
+        if (this.currentLevel < this.totalLevels) {
+          this.addLog('Interview passed! Moving to next level...', 'system')
+          setTimeout(() => {
+            this.nextLevel()
+          }, 2000)
+        } else {
+          this.gameOverMessage = 'Congratulations! You survived all interviews!'
+          this.addLog('Congratulations! You survived all interviews!', 'system')
+        }
         return
       }
 
@@ -290,6 +442,16 @@ export const useGameStore = defineStore('game', {
 
       // Restore some energy
       this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + 10)
+
+      // Check if current question is a special answerable question
+      if (this.currentQuestion && this.currentQuestion.special) {
+        this.specialQuestionActive = true
+        this.currentSpecialQuestion = this.currentQuestion
+        this.addLog(`Special question! You can answer this correctly to defeat the boss instantly.`, 'system')
+      } else {
+        this.specialQuestionActive = false
+        this.currentSpecialQuestion = null
+      }
 
       const state = {
         player: this.player,

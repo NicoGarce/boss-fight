@@ -4,6 +4,8 @@ import { useGameStore } from '../stores/game.js'
 
 const gameStore = useGameStore()
 const hoveredAction = ref(null)
+const longPressTimer = ref(null)
+const isMobile = ref('ontouchstart' in window)
 
 const handleBuzzwordAttack = () => {
   gameStore.performPlayerAction('buzzword_attack')
@@ -25,8 +27,45 @@ const handleConfidenceBoost = () => {
   gameStore.performPlayerAction('confidence_boost')
 }
 
+const handleAnswerQuestion = () => {
+  const answer = prompt(gameStore.currentSpecialQuestion?.text || '')
+  if (answer) {
+    gameStore.submitAnswer(answer)
+  }
+}
+
 const handleStartGame = () => {
   gameStore.startGame()
+}
+
+const handleTouchStart = (action, event) => {
+  if (!isMobile.value) return
+  event.preventDefault()
+  longPressTimer.value = setTimeout(() => {
+    hoveredAction.value = action
+  }, 500)
+}
+
+const handleTouchEnd = (event) => {
+  if (!isMobile.value) return
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
+
+const handleTouchMove = () => {
+  if (!isMobile.value) return
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
+
+const handleTapTooltip = () => {
+  if (isMobile.value && hoveredAction.value) {
+    hoveredAction.value = null
+  }
 }
 
 const actionTooltips = {
@@ -97,33 +136,80 @@ const actionTooltips = {
             <span>Energy: {{ gameStore.player.energy }}/100</span>
           </div>
           <div class="actions">
-            <button class="action-btn" @click="handleBuzzwordAttack" :disabled="gameStore.player.cooldowns.buzzword_attack > 0 || gameStore.player.energy < 20" @mouseenter="hoveredAction = 'buzzword_attack'" @mouseleave="hoveredAction = null">
+            <button 
+              class="action-btn" 
+              @click="handleBuzzwordAttack" 
+              :disabled="gameStore.player.cooldowns.buzzword_attack > 0 || gameStore.player.energy < 20" 
+              @mouseenter="!isMobile ? hoveredAction = 'buzzword_attack' : null" 
+              @mouseleave="!isMobile ? hoveredAction = null : null"
+              @touchstart="handleTouchStart('buzzword_attack', $event)"
+              @touchend="handleTouchEnd"
+              @touchmove="handleTouchMove">
               Buzzword
               <span v-if="gameStore.player.cooldowns.buzzword_attack > 0" class="cooldown">({{ gameStore.player.cooldowns.buzzword_attack }})</span>
             </button>
-            <button class="action-btn" @click="handlePortfolioFlex" :disabled="gameStore.player.cooldowns.portfolio_flex > 0 || gameStore.player.energy < 30" @mouseenter="hoveredAction = 'portfolio_flex'" @mouseleave="hoveredAction = null">
+            <button 
+              class="action-btn" 
+              @click="handlePortfolioFlex" 
+              :disabled="gameStore.player.cooldowns.portfolio_flex > 0 || gameStore.player.energy < 30" 
+              @mouseenter="!isMobile ? hoveredAction = 'portfolio_flex' : null" 
+              @mouseleave="!isMobile ? hoveredAction = null : null"
+              @touchstart="handleTouchStart('portfolio_flex', $event)"
+              @touchend="handleTouchEnd"
+              @touchmove="handleTouchMove">
               Flex
               <span v-if="gameStore.player.cooldowns.portfolio_flex > 0" class="cooldown">({{ gameStore.player.cooldowns.portfolio_flex }})</span>
             </button>
-            <button class="action-btn" @click="handlePanicDodge" :disabled="gameStore.player.cooldowns.panic_dodge > 0 || gameStore.player.energy < 15" @mouseenter="hoveredAction = 'panic_dodge'" @mouseleave="hoveredAction = null">
+            <button 
+              class="action-btn" 
+              @click="handlePanicDodge" 
+              :disabled="gameStore.player.cooldowns.panic_dodge > 0 || gameStore.player.energy < 15" 
+              @mouseenter="!isMobile ? hoveredAction = 'panic_dodge' : null" 
+              @mouseleave="!isMobile ? hoveredAction = null : null"
+              @touchstart="handleTouchStart('panic_dodge', $event)"
+              @touchend="handleTouchEnd"
+              @touchmove="handleTouchMove">
               Dodge
               <span v-if="gameStore.player.cooldowns.panic_dodge > 0" class="cooldown">({{ gameStore.player.cooldowns.panic_dodge }})</span>
             </button>
-            <button class="action-btn" @click="handleHeal" :disabled="gameStore.player.cooldowns.heal > 0 || gameStore.player.energy < 25" @mouseenter="hoveredAction = 'heal'" @mouseleave="hoveredAction = null">
+            <button 
+              class="action-btn" 
+              @click="handleHeal" 
+              :disabled="gameStore.player.cooldowns.heal > 0 || gameStore.player.energy < 25" 
+              @mouseenter="!isMobile ? hoveredAction = 'heal' : null" 
+              @mouseleave="!isMobile ? hoveredAction = null : null"
+              @touchstart="handleTouchStart('heal', $event)"
+              @touchend="handleTouchEnd"
+              @touchmove="handleTouchMove">
               Heal
               <span v-if="gameStore.player.cooldowns.heal > 0" class="cooldown">({{ gameStore.player.cooldowns.heal }})</span>
             </button>
-            <button class="action-btn" @click="handleConfidenceBoost" :disabled="gameStore.player.cooldowns.confidence_boost > 0 || gameStore.player.energy < 20" @mouseenter="hoveredAction = 'confidence_boost'" @mouseleave="hoveredAction = null">
+            <button 
+              class="action-btn" 
+              @click="handleConfidenceBoost" 
+              :disabled="gameStore.player.cooldowns.confidence_boost > 0 || gameStore.player.energy < 20" 
+              @mouseenter="!isMobile ? hoveredAction = 'confidence_boost' : null" 
+              @mouseleave="!isMobile ? hoveredAction = null : null"
+              @touchstart="handleTouchStart('confidence_boost', $event)"
+              @touchend="handleTouchEnd"
+              @touchmove="handleTouchMove">
               Boost
               <span v-if="gameStore.player.cooldowns.confidence_boost > 0" class="cooldown">({{ gameStore.player.cooldowns.confidence_boost }})</span>
             </button>
+            <button 
+              v-if="gameStore.specialQuestionActive"
+              class="action-btn special-action" 
+              @click="handleAnswerQuestion">
+              Answer
+            </button>
           </div>
-          <div v-if="hoveredAction" class="action-tooltip">
+          <div v-if="hoveredAction" class="action-tooltip" @click="handleTapTooltip">
             <h4>{{ actionTooltips[hoveredAction].name }}</h4>
             <p><strong>Effect:</strong> {{ actionTooltips[hoveredAction].damage }}</p>
             <p><strong>Energy Cost:</strong> {{ actionTooltips[hoveredAction].energy }}</p>
             <p><strong>Cooldown:</strong> {{ actionTooltips[hoveredAction].cooldown }} turn(s)</p>
             <p class="tooltip-desc">{{ actionTooltips[hoveredAction].description }}</p>
+            <p v-if="isMobile" class="tap-to-dismiss">Tap to dismiss</p>
           </div>
         </div>
       </div>
@@ -275,14 +361,24 @@ const actionTooltips = {
 }
 
 .action-btn:disabled:hover {
-  background: #BDBDBD;
   transform: none;
   box-shadow: none;
 }
 
-.cooldown {
-  font-size: 10px;
-  color: #f44336;
+.special-action {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a2e;
+  border-color: #FF8C00;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
 }
 
 .action-tooltip {
@@ -319,6 +415,14 @@ const actionTooltips = {
   color: #90A4AE;
   font-style: italic;
   margin-top: 8px;
+}
+
+.tap-to-dismiss {
+  color: #FFA726;
+  font-size: 11px;
+  margin-top: 8px;
+  font-style: italic;
+  text-align: center;
 }
 
 .stats-actions-row {
@@ -358,6 +462,68 @@ const actionTooltips = {
   .action-btn {
     font-size: 11px;
     padding: 8px 4px;
+  }
+  
+  .action-tooltip {
+    min-width: 180px;
+    padding: 10px;
+  }
+  
+  .action-tooltip h4 {
+    font-size: 13px;
+  }
+  
+  .action-tooltip p {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-card {
+    padding: 8px;
+  }
+  
+  .card-header h3 {
+    font-size: 16px;
+  }
+  
+  .avatar {
+    font-size: 36px;
+  }
+  
+  .stat-row {
+    gap: 6px;
+  }
+  
+  .stat-label {
+    min-width: 40px;
+    font-size: 13px;
+  }
+  
+  .stat-value {
+    min-width: 45px;
+    font-size: 13px;
+  }
+  
+  .inline-stats {
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+  }
+  
+  .actions {
+    gap: 4px;
+  }
+  
+  .action-btn {
+    font-size: 10px;
+    padding: 6px 3px;
+  }
+  
+  .action-tooltip {
+    min-width: 160px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 }
 

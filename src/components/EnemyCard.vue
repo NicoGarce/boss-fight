@@ -4,24 +4,66 @@ import { useGameStore } from '../stores/game.js'
 
 const gameStore = useGameStore()
 const hoveredBoss = ref(false)
+const longPressTimer = ref(null)
+const isMobile = ref('ontouchstart' in window)
 
 const getBossLore = (name) => {
-  const loreMap = {
-    'Junior Dev Interviewer': 'Fresh out of bootcamp, eager but inexperienced. Asks basic questions.',
-    'Senior Dev Interviewer': 'Seen it all, asks technical questions that trip up juniors.',
-    'HR from Hell': 'Known for asking uncomfortable questions and checking cultural fit aggressively.',
-    'Tech Lead': 'Tests your architecture knowledge and leadership potential.',
-    'Principal Engineer': 'The ultimate challenge. System design and philosophy questions.'
+  return 'A mysterious interviewer with unknown motives.'
+}
+
+const handleTouchStart = (event) => {
+  if (!isMobile.value) return
+  event.preventDefault()
+  longPressTimer.value = setTimeout(() => {
+    hoveredBoss.value = true
+  }, 500)
+}
+
+const handleTouchEnd = () => {
+  if (!isMobile.value) return
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
   }
-  return loreMap[name] || 'A mysterious interviewer with unknown motives.'
+}
+
+const handleTouchMove = () => {
+  if (!isMobile.value) return
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
+
+const handleTapTooltip = () => {
+  if (isMobile.value && hoveredBoss.value) {
+    hoveredBoss.value = false
+  }
 }
 </script>
 
 <template>
-  <div class="enemy-card" :class="{ shake: gameStore.enemyShake }">
+  <div class="enemy-card" :class="{ shake: gameStore.enemyShake, damage: gameStore.enemyDamage }">
     <div class="card-header">
-      <h3 @mouseenter="hoveredBoss = true" @mouseleave="hoveredBoss = false" class="boss-name">{{ gameStore.enemy.name }}</h3>
-      <span class="difficulty-badge">{{ gameStore.enemy.difficulty }}</span>
+      <h3 
+        @mouseenter="!isMobile ? hoveredBoss = true : null" 
+        @mouseleave="!isMobile ? hoveredBoss = false : null"
+        @touchstart="handleTouchStart"
+        @touchend="handleTouchEnd"
+        @touchmove="handleTouchMove"
+        class="boss-name">{{ gameStore.enemy.name }}</h3>
+      <div class="header-badges">
+        <span class="level-badge">Level {{ gameStore.currentLevel }}/{{ gameStore.totalLevels }}</span>
+        <span class="difficulty-badge">{{ gameStore.enemy.difficulty }}</span>
+      </div>
+      <div v-if="hoveredBoss" class="boss-tooltip" @click="handleTapTooltip">
+        <h4>{{ gameStore.enemy.name }}</h4>
+        <p><strong>Difficulty:</strong> {{ gameStore.enemy.difficulty }}</p>
+        <p><strong>HP:</strong> {{ gameStore.enemy.hp }}/{{ gameStore.enemy.maxHp }}</p>
+        <p><strong>Questions:</strong> {{ gameStore.enemy.questions.length }}</p>
+        <p class="tooltip-lore">{{ getBossLore(gameStore.enemy.name) }}</p>
+        <p v-if="isMobile" class="tap-to-dismiss">Tap to dismiss</p>
+      </div>
     </div>
     <div class="card-body">
       <div class="avatar">👔</div>
@@ -70,6 +112,18 @@ const getBossLore = (name) => {
 
 .boss-name {
   position: relative;
+}
+
+.level-badge {
+  background: #2196F3;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  border: 2px solid #1976D2;
 }
 
 .difficulty-badge {
@@ -164,7 +218,82 @@ const getBossLore = (name) => {
   
   .inline-stats {
     gap: 15px;
+    font-size: 13px;
+  }
+  
+  .boss-tooltip {
+    min-width: 220px;
+    padding: 10px;
+  }
+  
+  .boss-tooltip h4 {
+    font-size: 13px;
+  }
+  
+  .boss-tooltip p {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .enemy-card {
+    padding: 8px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .card-header h3 {
+    font-size: 16px;
+  }
+  
+  .header-badges {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .level-badge,
+  .difficulty-badge {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  
+  .card-body {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .avatar {
+    font-size: 36px;
+  }
+  
+  .stat-row {
+    gap: 6px;
+  }
+  
+  .stat-label {
+    min-width: 40px;
+    font-size: 13px;
+  }
+  
+  .stat-value {
+    min-width: 45px;
+    font-size: 13px;
+  }
+  
+  .inline-stats {
+    flex-direction: column;
+    gap: 6px;
     font-size: 12px;
+  }
+  
+  .boss-tooltip {
+    min-width: 180px;
+    padding: 8px;
+    margin-top: 8px;
   }
 }
 
@@ -210,7 +339,21 @@ const getBossLore = (name) => {
 .tooltip-lore {
   color: #90A4AE;
   font-style: italic;
-  margin-top: 8px;
+  margin-top: 10px;
   line-height: 1.4;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+}
+
+.tap-to-dismiss {
+  color: #EF5350;
+  font-size: 11px;
+  margin-top: 8px;
+  font-style: italic;
+  text-align: center;
+}
+
+.boss-tooltip {
+  cursor: pointer;
 }
 </style>

@@ -5,9 +5,34 @@ import { INTERVIEWERS } from '../data/interviewers.js'
 
 const gameStore = useGameStore()
 const showInstructions = ref(false)
+const selectedCareer = ref('dog_surfing')
+
+const careers = [
+  { id: 'professional_sleeper', name: 'Professional Sleeper', icon: '😴' },
+  { id: 'dog_surfing', name: 'Dog Surfing Instructor', icon: '🏄' },
+  { id: 'ice_cream_taster', name: 'Ice Cream Taster', icon: '🍦' },
+  { id: 'water_slide_tester', name: 'Water Slide Tester', icon: '💦' },
+  { id: 'professional_mourner', name: 'Professional Mourner', icon: '😢' },
+  { id: 'chicken_sexer', name: 'Chicken Sexer', icon: '🐥' },
+  { id: 'snake_milker', name: 'Snake Milker', icon: '🐍' },
+  { id: 'pet_food_taster', name: 'Pet Food Taster', icon: '🐕' },
+  { id: 'face_feeler', name: 'Face Feeler', icon: '👃' },
+  { id: 'golf_ball_diver', name: 'Golf Ball Diver', icon: '⛳' },
+  { id: 'line_stand_in', name: 'Line Stand-In', icon: '🚶' },
+  { id: 'fortune_cookie_writer', name: 'Fortune Cookie Writer', icon: '🥠' },
+  { id: 'odor_judge', name: 'Odor Judge', icon: '😅' },
+  { id: 'professional_cuddler', name: 'Professional Cuddler', icon: '🤗' },
+  { id: 'video_game_tester', name: 'Video Game Tester', icon: '🎮' },
+  { id: 'fake_wedding_guest', name: 'Fake Wedding Guest', icon: '💒' },
+  { id: 'train_pusher', name: 'Train Pusher', icon: '🚆' },
+  { id: 'bed_warmer', name: 'Bed Warmer', icon: '🛏️' },
+  { id: 'human_statue', name: 'Human Statue Performer', icon: '🗿' },
+  { id: 'toilet_paper_tester', name: 'Toilet Paper Tester', icon: '🧻' },
+  { id: 'software_developer', name: 'Software Developer', icon: '💻' }
+]
 
 const handleStartGame = () => {
-  gameStore.startGame()
+  gameStore.startGame(selectedCareer.value)
 }
 
 const toggleInstructions = () => {
@@ -15,14 +40,7 @@ const toggleInstructions = () => {
 }
 
 const getBossLore = (name) => {
-  const loreMap = {
-    'Junior Dev Interviewer': 'Fresh out of bootcamp, eager but inexperienced. Asks basic questions.',
-    'Senior Dev Interviewer': 'Seen it all, asks technical questions that trip up juniors.',
-    'HR from Hell': 'Known for asking uncomfortable questions and checking cultural fit aggressively.',
-    'Tech Lead': 'Tests your architecture knowledge and leadership potential.',
-    'Principal Engineer': 'The ultimate challenge. System design and philosophy questions.'
-  }
-  return loreMap[name] || 'A mysterious interviewer with unknown motives.'
+  return 'A mysterious interviewer with unknown motives.'
 }
 </script>
 
@@ -31,6 +49,15 @@ const getBossLore = (name) => {
     <div class="start-content">
       <h1 class="game-title">Boss Fight</h1>
       <p class="game-subtitle">Interview Survival Mode</p>
+      
+      <div class="career-selection">
+        <h3 class="section-label">Choose Your Career</h3>
+        <select v-model="selectedCareer" class="career-dropdown">
+          <option v-for="career in careers" :key="career.id" :value="career.id">
+            {{ career.icon }} {{ career.name }}
+          </option>
+        </select>
+      </div>
       
       <div class="button-row">
         <button class="start-btn" @click="handleStartGame">Start Interview</button>
@@ -195,6 +222,44 @@ const getBossLore = (name) => {
   font-size: 18px;
   font-family: 'Courier New', monospace;
   letter-spacing: 2px;
+}
+
+.career-selection {
+  margin-bottom: 30px;
+}
+
+.section-label {
+  margin: 0 0 15px 0;
+  color: #81C784;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.career-dropdown {
+  width: 100%;
+  padding: 12px 16px;
+  background: #37474F;
+  color: #ECEFF1;
+  border: 3px solid #607D8B;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.career-dropdown:hover {
+  border-color: #81C784;
+  background: #455A64;
+}
+
+.career-dropdown:focus {
+  outline: none;
+  border-color: #81C784;
+  box-shadow: 0 0 0 3px rgba(129, 199, 132, 0.2);
 }
 
 .button-row {
@@ -503,5 +568,165 @@ const getBossLore = (name) => {
   background: #388E3C;
   transform: scale(1.05);
   box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .start-screen {
+    padding: 10px;
+  }
+  
+  .start-content {
+    max-width: 100%;
+    padding: 20px;
+  }
+  
+  .game-title {
+    font-size: 32px;
+    letter-spacing: 2px;
+  }
+  
+  .game-subtitle {
+    font-size: 14px;
+  }
+  
+  .career-selection {
+    margin-bottom: 20px;
+  }
+  
+  .section-label {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .career-dropdown {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .button-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .start-btn,
+  .instructions-btn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+  }
+  
+  .modal-overlay {
+    padding: 10px;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    max-height: 90vh;
+    padding: 20px;
+  }
+  
+  .close-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 18px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+  }
+  
+  .instruction-text {
+    font-size: 14px;
+  }
+  
+  .actions-info {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .action-info {
+    padding: 12px;
+  }
+  
+  .action-icon {
+    font-size: 28px;
+  }
+  
+  .action-details h3 {
+    font-size: 14px;
+  }
+  
+  .action-stat {
+    font-size: 12px;
+  }
+  
+  .action-desc {
+    font-size: 12px;
+  }
+  
+  .bosses-info {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .boss-info {
+    padding: 12px;
+  }
+  
+  .boss-header h3 {
+    font-size: 14px;
+  }
+  
+  .boss-stats {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .boss-lore {
+    font-size: 12px;
+  }
+  
+  .resources-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .resource-item {
+    padding: 12px;
+  }
+  
+  .resource-icon {
+    font-size: 24px;
+  }
+  
+  .resource-text strong {
+    font-size: 13px;
+  }
+  
+  .resource-text p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-title {
+    font-size: 24px;
+    letter-spacing: 1px;
+  }
+  
+  .start-content {
+    padding: 15px;
+  }
+  
+  .start-btn,
+  .instructions-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  .modal-content {
+    padding: 15px;
+  }
 }
 </style>

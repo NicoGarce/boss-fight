@@ -1,7 +1,16 @@
 <script setup>
+import { ref, watch, nextTick } from 'vue'
 import { useGameStore } from '../stores/game.js'
 
 const gameStore = useGameStore()
+const logContent = ref(null)
+
+watch(() => gameStore.log, async () => {
+  await nextTick()
+  if (logContent.value) {
+    logContent.value.scrollTop = logContent.value.scrollHeight
+  }
+}, { deep: true })
 </script>
 
 <template>
@@ -10,7 +19,7 @@ const gameStore = useGameStore()
       <span v-if="gameStore.turn === 'player'" class="turn-text player-turn">Your Turn</span>
       <span v-else class="turn-text enemy-turn">Interviewer Thinking...</span>
     </div>
-    <div class="log-content">
+    <div class="log-content" ref="logContent">
       <p v-for="(entry, index) in gameStore.log" :key="index" 
          :class="['log-entry', `log-${entry.type}`]">
         {{ entry.message }}
@@ -117,6 +126,45 @@ const gameStore = useGameStore()
   
   .log-entry {
     font-size: 12px;
+  }
+  
+  .action-tooltip {
+    min-width: 180px;
+    padding: 10px;
+  }
+  
+  .action-tooltip h4 {
+    font-size: 13px;
+  }
+  
+  .action-tooltip p {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .log-panel {
+    padding: 8px;
+  }
+  
+  .turn-indicator {
+    padding: 6px;
+    margin-bottom: 6px;
+  }
+  
+  .turn-text {
+    font-size: 11px;
+  }
+  
+  .log-content {
+    height: 60px;
+    padding: 6px;
+  }
+  
+  .log-entry {
+    font-size: 11px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
   }
 }
 </style>
